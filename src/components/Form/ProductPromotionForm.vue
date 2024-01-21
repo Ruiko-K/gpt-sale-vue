@@ -1,5 +1,11 @@
 <script setup>
 import { ref, watch } from 'vue'
+import axios from 'axios';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+
+const store = useStore();
+const router = useRouter();
 
 // do not use same name with ref
 const form = ref({
@@ -7,16 +13,45 @@ const form = ref({
     tagsAll: [],
     tag: '',
     targetGroup: '',
-    sence: 1,
-    emoji: 1,
-    textLength: 1
+    sence: "1",
+    emoji: "1",
+    textLength: "1"
 })
 const n = ref(0);
-const placeholder = ref("请输入关键词");
+const placeholder = ref("请输入关键词，按回车键添加");
 const inputTag = ref(null);
+
+//表单提交
 const onSubmit = () => {
-    console.log('submit!')
-    console.log(form.value);
+    // console.log('submit!')
+    axios.post('http://localhost:8080/create/product',
+        {
+            productName: form.value.productName,
+            productKeywords: form.value.tagsAll,
+            targetGroup: form.value.targetGroup,
+            scene: form.value.sence,
+            useEmoji: form.value.emoji,
+            textLength: form.value.textLength
+        },
+        { withCredentials: true }
+    ).then((res) => {
+        store.commit('setCreateText', res.data.data.content);
+    }).catch((err) => {
+        alert("系统异常，请重新尝试！");
+        console.log(err);
+        router.push({ path: '/home' });
+    })
+}
+
+//清空表单
+const clear = () => {
+    form.value.productName = '';
+    form.value.tagsAll = [];
+    form.value.tag = '';
+    form.value.targetGroup = '';
+    form.value.sence = "1";
+    form.value.emoji = "1";
+    form.value.textLength = "1";
 }
 
 const removeTag = (index) => {
@@ -66,7 +101,7 @@ const onclick = () => {
 
 watch(() => form.value.tagsAll, (val) => {
     if (val.length == "") {
-        placeholder.value = "请输入关键词";
+        placeholder.value = "请输入关键词，按回车键添加";
     } else {
         placeholder.value = "";
     }
@@ -74,6 +109,7 @@ watch(() => form.value.tagsAll, (val) => {
 </script>
 
 <template>
+    <slot></slot>
     <el-form :model="form" class="form">
         <el-form-item>
             <label>商品信息</label>
@@ -118,14 +154,14 @@ watch(() => form.value.tagsAll, (val) => {
             <label>文案长度</label>
             <div style="display: block;width: 100%;">
                 <el-radio-group v-model="form.textLength">
-                <el-radio label="1" size="large" border>短文案</el-radio>
-                <el-radio label="2" size="large" border>中文案</el-radio>
-                <el-radio label="3" size="large" border>长文案</el-radio>
-            </el-radio-group>
+                    <el-radio label="1" size="large" border>短文案</el-radio>
+                    <el-radio label="2" size="large" border>中文案</el-radio>
+                    <el-radio label="3" size="large" border>长文案</el-radio>
+                </el-radio-group>
             </div>
         </el-form-item>
         <el-form-item>
-            <el-button>清空</el-button>
+            <el-button @click="clear">清空</el-button>
             <el-button type="primary" @click="onSubmit">开始生成</el-button>
         </el-form-item>
     </el-form>
@@ -134,11 +170,8 @@ watch(() => form.value.tagsAll, (val) => {
 <style scoped>
 .form {
     background-color: white;
-}
-
-label {
-    font-size: 14px;
-    margin-bottom: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 .tag-area {
@@ -195,7 +228,7 @@ label {
     background-color: transparent;
     padding: 0;
     width: auto;
-    min-width: 150px;
+    min-width: 180px;
     height: 2rem;
     vertical-align: top;
 }
